@@ -8,13 +8,17 @@ public class Icosahedron : MonoBehaviour {
   private Vector3[] vertices = new Vector3[12];
   private Mesh mesh;
 
+  public int scale = 1;
+
   private int triangleIndex;
+
+  public bool autoUpdate;
 
   private void Awake() {
     Generate();
   }
 
-  private void Generate() {
+  public void Generate() {
 
     mesh = new Mesh();
     mesh.name = "Procedural Icosahedron";
@@ -28,20 +32,20 @@ public class Icosahedron : MonoBehaviour {
   // create the 12 vertices
   private void CreateVertices(float t) {
 
-    vertices[0]  = new Vector3(-1,  t,  0);
-    vertices[1]  = new Vector3( 1,  t,  0);
-    vertices[2]  = new Vector3(-1, -t,  0);
-    vertices[3]  = new Vector3( 1, -t,  0);
+    vertices[0]  = new Vector3(-1,  t,  0) * scale;
+    vertices[1]  = new Vector3( 1,  t,  0) * scale;
+    vertices[2]  = new Vector3(-1, -t,  0) * scale;
+    vertices[3]  = new Vector3( 1, -t,  0) * scale;
 
-    vertices[4]  = new Vector3( 0, -1, -t);
-    vertices[5]  = new Vector3( 0,  1, -t);
-    vertices[6]  = new Vector3( 0, -1,  t);
-    vertices[7]  = new Vector3( 0,  1,  t);
+    vertices[4]  = new Vector3( 0, -1, -t) * scale;
+    vertices[5]  = new Vector3( 0,  1, -t) * scale;
+    vertices[6]  = new Vector3( 0, -1,  t) * scale;
+    vertices[7]  = new Vector3( 0,  1,  t) * scale;
 
-    vertices[8]  = new Vector3( t,  0,  1);
-    vertices[9]  = new Vector3( t,  0, -1);
-    vertices[10] = new Vector3(-t,  0,  1);
-    vertices[11] = new Vector3(-t,  0, -1);
+    vertices[8]  = new Vector3( t,  0,  1) * scale;
+    vertices[9]  = new Vector3( t,  0, -1) * scale;
+    vertices[10] = new Vector3(-t,  0,  1) * scale;
+    vertices[11] = new Vector3(-t,  0, -1) * scale;
 
     mesh.vertices = vertices;
   }
@@ -49,6 +53,7 @@ public class Icosahedron : MonoBehaviour {
   // create the 20 faces
   private void CreateTriangles() {
 
+    triangleIndex = 0;
     int[] triangles = new int[20 * 3];
 
     // order vertices clockwise so that the face faces the right direction
