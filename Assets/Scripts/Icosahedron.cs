@@ -21,7 +21,7 @@ public class Icosahedron : MonoBehaviour {
   }
 
   public void Generate() {
-
+    
     vertices = new List<Vector3>();
     triangles = new List<int>();
     midpointCache = new Dictionary<long, int>();
@@ -32,12 +32,7 @@ public class Icosahedron : MonoBehaviour {
     float t = (1 + Mathf.Sqrt(5)) / 2;
     CreateVertices(t);
     CreateTriangles();
-
-    // add a mesh collider to the generated mesh
-    if(this.GetComponent<MeshCollider>() == null) {
-      MeshCollider meshc = gameObject.AddComponent(typeof(MeshCollider)) as MeshCollider;
-      meshc.sharedMesh = mesh;
-    }
+    AddCollider(mesh);
   }
 
   // create the 12 vertices
@@ -187,6 +182,24 @@ public class Icosahedron : MonoBehaviour {
     // add key and midpoint vertex index (value) to cache
     midpointCache.Add(key, vertices.Count - 1);
     return vertices.Count - 1;
+  }
+
+  private void AddCollider(Mesh mesh) {
+
+    // add a mesh collider to the generated mesh
+    if (this.GetComponent<MeshCollider>() == null) {
+      MeshCollider meshc = gameObject.AddComponent(typeof(MeshCollider)) as MeshCollider;
+      meshc.sharedMesh = mesh;
+    } else {
+      // destroy all existing colliders
+      foreach(MeshCollider meshc in this.GetComponents<MeshCollider>()) {
+        meshc.enabled = false;
+        DestroyImmediate(meshc);
+      }
+      // create new mesh collider
+      MeshCollider newMeshc = gameObject.AddComponent(typeof(MeshCollider)) as MeshCollider;
+      newMeshc.sharedMesh = mesh;
+    }
   }
   
   // draw gizmo at each vertex
