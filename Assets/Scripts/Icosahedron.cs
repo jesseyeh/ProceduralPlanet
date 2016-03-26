@@ -193,7 +193,6 @@ public class Icosahedron : MonoBehaviour {
     } else {
       // destroy all existing colliders
       foreach(MeshCollider meshc in this.GetComponents<MeshCollider>()) {
-        meshc.enabled = false;
         DestroyImmediate(meshc);
       }
       // create new mesh collider
