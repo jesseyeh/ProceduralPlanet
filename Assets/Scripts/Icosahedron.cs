@@ -29,13 +29,15 @@ public class Icosahedron : MonoBehaviour {
     mesh.name = "Procedural Icosahedron";
     this.GetComponent<MeshFilter>().mesh = mesh;
 
-    float t = 1 + Mathf.Sqrt(5) / 2;
+    float t = (1 + Mathf.Sqrt(5)) / 2;
     CreateVertices(t);
     CreateTriangles();
 
     // add a mesh collider to the generated mesh
-    MeshCollider meshc = gameObject.AddComponent(typeof(MeshCollider)) as MeshCollider;
-    meshc.sharedMesh = mesh;
+    if(this.GetComponent<MeshCollider>() == null) {
+      MeshCollider meshc = gameObject.AddComponent(typeof(MeshCollider)) as MeshCollider;
+      meshc.sharedMesh = mesh;
+    }
   }
 
   // create the 12 vertices
@@ -180,7 +182,7 @@ public class Icosahedron : MonoBehaviour {
     Vector3 mp = new Vector3((p1.x + p2.x) / 2f,
                              (p1.y + p2.y) / 2f,
                              (p1.z + p2.z) / 2f);
-    vertices.Add(adjustForUnitSphere(mp)); 
+    vertices.Add(adjustForUnitSphere(mp) * scale); 
 
     // add key and midpoint vertex index (value) to cache
     midpointCache.Add(key, vertices.Count - 1);
