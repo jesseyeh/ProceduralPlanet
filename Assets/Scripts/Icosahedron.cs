@@ -32,6 +32,10 @@ public class Icosahedron : MonoBehaviour {
     float t = 1 + Mathf.Sqrt(5) / 2;
     CreateVertices(t);
     CreateTriangles();
+
+    // add a mesh collider to the generated mesh
+    MeshCollider meshc = gameObject.AddComponent(typeof(MeshCollider)) as MeshCollider;
+    meshc.sharedMesh = mesh;
   }
 
   // create the 12 vertices
