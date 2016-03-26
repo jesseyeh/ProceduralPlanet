@@ -1,16 +1,18 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
 public class Icosahedron : MonoBehaviour {
-
-  // 12 vertices in an icosahedron
-  private Vector3[] vertices = new Vector3[12];
+  
+  private List<Vector3> vertices;
+  private List<int> triangles;
+  private Dictionary<long, int> midpointCache;
   private Mesh mesh;
 
   public int scale = 1;
-
-  private int triangleIndex;
+  [Range(0, 4)]
+  public int subdivisions = 0;
 
   public bool autoUpdate;
 
@@ -20,6 +22,9 @@ public class Icosahedron : MonoBehaviour {
 
   public void Generate() {
 
+    vertices = new List<Vector3>();
+    triangles = new List<int>();
+    midpointCache = new Dictionary<long, int>();
     mesh = new Mesh();
     mesh.name = "Procedural Icosahedron";
     this.GetComponent<MeshFilter>().mesh = mesh;
@@ -32,80 +37,153 @@ public class Icosahedron : MonoBehaviour {
   // create the 12 vertices
   private void CreateVertices(float t) {
 
-    vertices[0]  = new Vector3(-1,  t,  0) * scale;
-    vertices[1]  = new Vector3( 1,  t,  0) * scale;
-    vertices[2]  = new Vector3(-1, -t,  0) * scale;
-    vertices[3]  = new Vector3( 1, -t,  0) * scale;
+    vertices.Add(new Vector3(-1,  t, 0) * scale);
+    vertices.Add(new Vector3( 1,  t, 0) * scale);
+    vertices.Add(new Vector3(-1, -t, 0) * scale);
+    vertices.Add(new Vector3( 1, -t, 0) * scale);
 
-    vertices[4]  = new Vector3( 0, -1, -t) * scale;
-    vertices[5]  = new Vector3( 0,  1, -t) * scale;
-    vertices[6]  = new Vector3( 0, -1,  t) * scale;
-    vertices[7]  = new Vector3( 0,  1,  t) * scale;
+    vertices.Add(new Vector3(0, -1, -t) * scale);
+    vertices.Add(new Vector3(0,  1, -t) * scale);
+    vertices.Add(new Vector3(0, -1,  t) * scale);
+    vertices.Add(new Vector3(0,  1,  t) * scale);
 
-    vertices[8]  = new Vector3( t,  0,  1) * scale;
-    vertices[9]  = new Vector3( t,  0, -1) * scale;
-    vertices[10] = new Vector3(-t,  0,  1) * scale;
-    vertices[11] = new Vector3(-t,  0, -1) * scale;
+    vertices.Add(new Vector3( t, 0,  1) * scale);
+    vertices.Add(new Vector3( t, 0, -1) * scale);
+    vertices.Add(new Vector3(-t, 0,  1) * scale);
+    vertices.Add(new Vector3(-t, 0, -1) * scale);
 
-    mesh.vertices = vertices;
+    mesh.vertices = vertices.ToArray();
   }
 
-  // create the 20 faces
   private void CreateTriangles() {
-
-    triangleIndex = 0;
-    int[] triangles = new int[20 * 3];
 
     // order vertices clockwise so that the face faces the right direction
 
+    // create the 20 faces
     // five faces around point 0
-    AddTriangle(triangles, 0, 5, 11);
-    AddTriangle(triangles, 0, 1, 5);
-    AddTriangle(triangles, 0, 7, 1);
-    AddTriangle(triangles, 0, 10, 7);
-    AddTriangle(triangles, 0, 11, 10);
+    AddTriangle(0, 5, 11);
+    AddTriangle(0, 1, 5);
+    AddTriangle(0, 7, 1);
+    AddTriangle(0, 10, 7);
+    AddTriangle(0, 11, 10);
 
     // five adjacent faces
-    AddTriangle(triangles, 1, 9, 5);
-    AddTriangle(triangles, 5, 4, 11);
-    AddTriangle(triangles, 11, 2, 10);
-    AddTriangle(triangles, 10, 6, 7);
-    AddTriangle(triangles, 7, 8, 1);
+    AddTriangle(1, 9, 5);
+    AddTriangle(5, 4, 11);
+    AddTriangle(11, 2, 10);
+    AddTriangle(10, 6, 7);
+    AddTriangle(7, 8, 1);
 
     // five face around point 3 (polar opposite of point 0)
-    AddTriangle(triangles, 3, 4, 9);
-    AddTriangle(triangles, 3, 2, 4);
-    AddTriangle(triangles, 3, 6, 2);
-    AddTriangle(triangles, 3, 8, 6);
-    AddTriangle(triangles, 3, 9, 8);
+    AddTriangle(3, 4, 9);
+    AddTriangle(3, 2, 4);
+    AddTriangle(3, 6, 2);
+    AddTriangle(3, 8, 6);
+    AddTriangle(3, 9, 8);
 
     // five adjacent faces
-    AddTriangle(triangles, 4, 5, 9);
-    AddTriangle(triangles, 2, 11, 4);
-    AddTriangle(triangles, 6, 10, 2);
-    AddTriangle(triangles, 8, 7, 6);
-    AddTriangle(triangles, 9, 1, 8);
+    AddTriangle(4, 5, 9);
+    AddTriangle(2, 11, 4);
+    AddTriangle(6, 10, 2);
+    AddTriangle(8, 7, 6);
+    AddTriangle(9, 1, 8);
 
-    mesh.triangles = triangles;
+    // subdivisions
+    List<int> trianglesSubdivisions = new List<int>();
+
+    // refine triangles
+    for(int i = 0; i < subdivisions; i++) {
+      for(int j = 0; j < triangles.Count; j += 3) {
+        // find midpoints for each triangle
+        int mp1 = GetMidpoint(triangles[j], triangles[j + 1]);
+        int mp2 = GetMidpoint(triangles[j + 1], triangles[j + 2]);
+        int mp3 = GetMidpoint(triangles[j], triangles[j + 2]);
+
+        // first subdivision
+        trianglesSubdivisions.Add(triangles[j]);
+        trianglesSubdivisions.Add(mp1);
+        trianglesSubdivisions.Add(mp3);
+        
+        // second subdivision
+        trianglesSubdivisions.Add(mp1);
+        trianglesSubdivisions.Add(triangles[j + 1]);
+        trianglesSubdivisions.Add(mp2);
+
+        // third subdivision
+        trianglesSubdivisions.Add(mp3);
+        trianglesSubdivisions.Add(mp2);
+        trianglesSubdivisions.Add(triangles[j + 2]);
+
+        // middle subdivision
+        trianglesSubdivisions.Add(mp1);
+        trianglesSubdivisions.Add(mp2);
+        trianglesSubdivisions.Add(mp3);
+      }
+
+      // update triangles List
+      triangles.AddRange(trianglesSubdivisions);
+    }
+
+    // update mesh
+    mesh.vertices = vertices.ToArray();
+    mesh.triangles = triangles.ToArray();
   }
 
   // creates a single triangle face
-  private void AddTriangle(int[] triangles, int v1, int v2, int v3) {
+  private void AddTriangle(int v1, int v2, int v3) {
 
-    triangles[triangleIndex] = v1;
-    triangles[triangleIndex + 1] = v2;
-    triangles[triangleIndex + 2] = v3;
-
-    // increment triangleIndex to start at the next set of vertices
-    triangleIndex += 3;
+    triangles.Add(v1);
+    triangles.Add(v2);
+    triangles.Add(v3);
   }
 
+  // gets the midpoint between two points of a triangle's edge
+  private int GetMidpoint(int v1, int v2) {
+
+    long smallerIndex;
+    long largerIndex;
+    if(v1 >= v2) {
+      smallerIndex = v2;
+      largerIndex = v1;
+    } else {
+      smallerIndex = v1;
+      largerIndex = v2;
+    }
+
+    // the key is unique to any two pair of points
+    long key = (smallerIndex << 32) + largerIndex;
+
+    int ret;
+    if(midpointCache.TryGetValue(key, out ret)) {
+      return ret; 
+    }
+
+    /* -- continue past this point if the key does not exist -- */
+
+    // key does not exist, calculate midpoint
+    // first point
+    Vector3 p1 = vertices[v1];
+    // second point
+    Vector3 p2 = vertices[v2];
+    // midpoint between first and second points
+    Vector3 mp = new Vector3((p1.x + p2.x) / 2f,
+                             (p1.y + p2.y) / 2f,
+                             (p1.z + p2.z) / 2f);
+    vertices.Add(mp); 
+
+    // add key and midpoint vertex index (value) to cache
+    midpointCache.Add(key, vertices.Count - 1);
+    return vertices.Count - 1;
+  }
+  
   // draw gizmo at each vertex
   private void OnDrawGizmos() {
 
-    Gizmos.color = Color.black;
-    for(int i = 0; i < vertices.Length; i++) {
-      Gizmos.DrawSphere(vertices[i], 0.1f);
+    if(vertices != null) {
+      Gizmos.color = Color.black;
+      for (int i = 0; i < vertices.Count; i++) {
+        Gizmos.DrawSphere(vertices[i], 0.1f);
+      }
     }
   }
 }
