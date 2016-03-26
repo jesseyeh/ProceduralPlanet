@@ -11,7 +11,7 @@ public class Icosahedron : MonoBehaviour {
   private Mesh mesh;
 
   public int scale = 1;
-  [Range(0, 4)]
+  [Range(0, 3)]
   public int subdivisions = 0;
 
   public bool autoUpdate;
@@ -36,23 +36,30 @@ public class Icosahedron : MonoBehaviour {
 
   // create the 12 vertices
   private void CreateVertices(float t) {
+    
+    vertices.Add(adjustForUnitSphere(new Vector3(-1,  t, 0)) * scale);
+    vertices.Add(adjustForUnitSphere(new Vector3( 1,  t, 0)) * scale);
+    vertices.Add(adjustForUnitSphere(new Vector3(-1, -t, 0)) * scale);
+    vertices.Add(adjustForUnitSphere(new Vector3( 1, -t, 0)) * scale);
 
-    vertices.Add(new Vector3(-1,  t, 0) * scale);
-    vertices.Add(new Vector3( 1,  t, 0) * scale);
-    vertices.Add(new Vector3(-1, -t, 0) * scale);
-    vertices.Add(new Vector3( 1, -t, 0) * scale);
+    vertices.Add(adjustForUnitSphere(new Vector3(0, -1, -t)) * scale);
+    vertices.Add(adjustForUnitSphere(new Vector3(0,  1, -t)) * scale);
+    vertices.Add(adjustForUnitSphere(new Vector3(0, -1,  t)) * scale);
+    vertices.Add(adjustForUnitSphere(new Vector3(0,  1,  t)) * scale);
 
-    vertices.Add(new Vector3(0, -1, -t) * scale);
-    vertices.Add(new Vector3(0,  1, -t) * scale);
-    vertices.Add(new Vector3(0, -1,  t) * scale);
-    vertices.Add(new Vector3(0,  1,  t) * scale);
-
-    vertices.Add(new Vector3( t, 0,  1) * scale);
-    vertices.Add(new Vector3( t, 0, -1) * scale);
-    vertices.Add(new Vector3(-t, 0,  1) * scale);
-    vertices.Add(new Vector3(-t, 0, -1) * scale);
-
+    vertices.Add(adjustForUnitSphere(new Vector3( t, 0,  1)) * scale);
+    vertices.Add(adjustForUnitSphere(new Vector3( t, 0, -1)) * scale);
+    vertices.Add(adjustForUnitSphere(new Vector3(-t, 0,  1)) * scale);
+    vertices.Add(adjustForUnitSphere(new Vector3(-t, 0, -1)) * scale);
+    
     mesh.vertices = vertices.ToArray();
+  }
+
+  private Vector3 adjustForUnitSphere(Vector3 point) {
+
+    float length = Mathf.Sqrt(point.x * point.x + point.y * point.y + point.z * point.z);
+    Vector3 newPoint = new Vector3(point.x / length, point.y / length, point.z / length);
+    return newPoint;
   }
 
   private void CreateTriangles() {
@@ -169,7 +176,7 @@ public class Icosahedron : MonoBehaviour {
     Vector3 mp = new Vector3((p1.x + p2.x) / 2f,
                              (p1.y + p2.y) / 2f,
                              (p1.z + p2.z) / 2f);
-    vertices.Add(mp); 
+    vertices.Add(adjustForUnitSphere(mp)); 
 
     // add key and midpoint vertex index (value) to cache
     midpointCache.Add(key, vertices.Count - 1);
