@@ -4,8 +4,8 @@ using System.Collections;
 [RequireComponent(typeof(Rigidbody))]
 public class GravityBody : MonoBehaviour {
 
-  GravityAttractor planet;
-  Rigidbody myRigidbody;
+  private GravityAttractor planet;
+  private Rigidbody myRigidbody;
    
   void Awake() {
 
