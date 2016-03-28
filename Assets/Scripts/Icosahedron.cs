@@ -240,6 +240,39 @@ public class Icosahedron : MonoBehaviour {
 
     List<int> trianglesSubdivisions = new List<int>();
 
+    // refine triangles
+    for(int i = 0; i < subdivisions; i++) {
+      for(int j = 0; j < triangles.Count; j += 3) {
+        // find midpoints for each triangle
+        int mp1 = GetFlatMidpoint(triangles[j], triangles[j + 1]);
+        int mp2 = GetFlatMidpoint(triangles[j + 1], triangles[j + 2]);
+        int mp3 = GetFlatMidpoint(triangles[j], triangles[j + 2]);
+
+        // first subdivision
+        trianglesSubdivisions.Add(triangles[j]);
+        trianglesSubdivisions.Add(mp1);
+        trianglesSubdivisions.Add(mp3);
+        
+        // second subdivision
+        trianglesSubdivisions.Add(mp1);
+        trianglesSubdivisions.Add(triangles[j + 1]);
+        trianglesSubdivisions.Add(mp2);
+
+        // third subdivision
+        trianglesSubdivisions.Add(mp3);
+        trianglesSubdivisions.Add(mp2);
+        trianglesSubdivisions.Add(triangles[j + 2]);
+
+        // middle subdivision
+        trianglesSubdivisions.Add(mp1);
+        trianglesSubdivisions.Add(mp2);
+        trianglesSubdivisions.Add(mp3);
+      }
+
+      // update triangles List
+      triangles.AddRange(trianglesSubdivisions);
+    }
+
     mesh.vertices = vertices.ToArray();
     mesh.triangles = triangles.ToArray();
     mesh.RecalculateNormals();
@@ -292,6 +325,20 @@ public class Icosahedron : MonoBehaviour {
     return vertices.Count - 1;
   }
 
+  // same as GetMidpoint, but does not account for shared vertices
+  private int GetFlatMidpoint(int v1, int v2) {
+    // first point
+    Vector3 p1 = vertices[v1];
+    // second point
+    Vector3 p2 = vertices[v2];
+    // midpoint between first and second points
+    Vector3 mp = new Vector3((p1.x + p2.x) / 2f,
+                             (p1.y + p2.y) / 2f,
+                             (p1.z + p2.z) / 2f);
+    vertices.Add(adjustForUnitSphere(mp) * scale);
+    return vertices.Count - 1;
+  }
+
   private void AddCollider(Mesh mesh) {
 
     // add a mesh collider to the generated mesh
@@ -320,7 +367,7 @@ public class Icosahedron : MonoBehaviour {
         } else {
           Gizmos.color = Color.black;
         }
-        Gizmos.DrawSphere(vertices[i], 1f);
+        Gizmos.DrawSphere(vertices[i], 0.1f);
       }
     }
   }
