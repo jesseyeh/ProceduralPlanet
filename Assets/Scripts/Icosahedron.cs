@@ -15,6 +15,7 @@ public class Icosahedron : MonoBehaviour {
   public int subdivisions = 0;
 
   public bool autoUpdate;
+  public bool isFlatShaded;
 
   private void Awake() {
     Generate();
@@ -30,30 +31,124 @@ public class Icosahedron : MonoBehaviour {
     this.GetComponent<MeshFilter>().mesh = mesh;
 
     float t = (1 + Mathf.Sqrt(5)) / 2;
-    CreateVertices(t);
-    CreateTriangles();
+    if(!isFlatShaded) {
+      CreateVertices(t);
+      CreateTriangles();
+    } else {
+      CreateFlatVertices(t);
+      CreateFlatTriangles();
+    }
+
     AddCollider(mesh);
   }
 
   // create the 12 vertices
   private void CreateVertices(float t) {
     
-    vertices.Add(adjustForUnitSphere(new Vector3(-1,  t, 0)) * scale);
-    vertices.Add(adjustForUnitSphere(new Vector3( 1,  t, 0)) * scale);
-    vertices.Add(adjustForUnitSphere(new Vector3(-1, -t, 0)) * scale);
-    vertices.Add(adjustForUnitSphere(new Vector3( 1, -t, 0)) * scale);
+    vertices.Add(adjustForUnitSphere(new Vector3(-1,  t,  0)) * scale); // 0
+    vertices.Add(adjustForUnitSphere(new Vector3( 1,  t,  0)) * scale); // 1
+    vertices.Add(adjustForUnitSphere(new Vector3(-1, -t,  0)) * scale); // 2
+    vertices.Add(adjustForUnitSphere(new Vector3( 1, -t,  0)) * scale); // 3
 
-    vertices.Add(adjustForUnitSphere(new Vector3(0, -1, -t)) * scale);
-    vertices.Add(adjustForUnitSphere(new Vector3(0,  1, -t)) * scale);
-    vertices.Add(adjustForUnitSphere(new Vector3(0, -1,  t)) * scale);
-    vertices.Add(adjustForUnitSphere(new Vector3(0,  1,  t)) * scale);
+    vertices.Add(adjustForUnitSphere(new Vector3( 0, -1, -t)) * scale); // 4
+    vertices.Add(adjustForUnitSphere(new Vector3( 0,  1, -t)) * scale); // 5
+    vertices.Add(adjustForUnitSphere(new Vector3( 0, -1,  t)) * scale); // 6
+    vertices.Add(adjustForUnitSphere(new Vector3( 0,  1,  t)) * scale); // 7
 
-    vertices.Add(adjustForUnitSphere(new Vector3( t, 0,  1)) * scale);
-    vertices.Add(adjustForUnitSphere(new Vector3( t, 0, -1)) * scale);
-    vertices.Add(adjustForUnitSphere(new Vector3(-t, 0,  1)) * scale);
-    vertices.Add(adjustForUnitSphere(new Vector3(-t, 0, -1)) * scale);
+    vertices.Add(adjustForUnitSphere(new Vector3( t,  0,  1)) * scale); // 8
+    vertices.Add(adjustForUnitSphere(new Vector3( t,  0, -1)) * scale); // 9
+    vertices.Add(adjustForUnitSphere(new Vector3(-t,  0,  1)) * scale); // 10
+    vertices.Add(adjustForUnitSphere(new Vector3(-t,  0, -1)) * scale); // 11
     
     mesh.vertices = vertices.ToArray();
+  }
+
+  // create separate vertices for flat shading
+  private void CreateFlatVertices(float t) {
+
+    // five faces around point 0
+    vertices.Add(adjustForUnitSphere(new Vector3(-1,  t,  0)) * scale); // 0
+    vertices.Add(adjustForUnitSphere(new Vector3( 0,  1, -t)) * scale); // 5
+    vertices.Add(adjustForUnitSphere(new Vector3(-t,  0, -1)) * scale); // 11
+
+    vertices.Add(adjustForUnitSphere(new Vector3(-1,  t,  0)) * scale); // 0
+    vertices.Add(adjustForUnitSphere(new Vector3( 1,  t,  0)) * scale); // 1
+    vertices.Add(adjustForUnitSphere(new Vector3( 0,  1, -t)) * scale); // 5
+
+    vertices.Add(adjustForUnitSphere(new Vector3(-1,  t,  0)) * scale); // 0
+    vertices.Add(adjustForUnitSphere(new Vector3( 0,  1,  t)) * scale); // 7
+    vertices.Add(adjustForUnitSphere(new Vector3( 1,  t,  0)) * scale); // 1
+
+    vertices.Add(adjustForUnitSphere(new Vector3(-1,  t,  0)) * scale); // 0
+    vertices.Add(adjustForUnitSphere(new Vector3(-t,  0,  1)) * scale); // 10
+    vertices.Add(adjustForUnitSphere(new Vector3( 0,  1,  t)) * scale); // 7
+
+    vertices.Add(adjustForUnitSphere(new Vector3(-1,  t,  0)) * scale); // 0
+    vertices.Add(adjustForUnitSphere(new Vector3(-t,  0, -1)) * scale); // 11
+    vertices.Add(adjustForUnitSphere(new Vector3(-t,  0,  1)) * scale); // 10
+
+    // five adjacent faces
+    vertices.Add(adjustForUnitSphere(new Vector3( 1,  t,  0)) * scale); // 1
+    vertices.Add(adjustForUnitSphere(new Vector3( t,  0, -1)) * scale); // 9
+    vertices.Add(adjustForUnitSphere(new Vector3( 0,  1, -t)) * scale); // 5
+
+    vertices.Add(adjustForUnitSphere(new Vector3( 0,  1, -t)) * scale); // 5
+    vertices.Add(adjustForUnitSphere(new Vector3( 0, -1, -t)) * scale); // 4
+    vertices.Add(adjustForUnitSphere(new Vector3(-t,  0, -1)) * scale); // 11
+
+    vertices.Add(adjustForUnitSphere(new Vector3(-t,  0, -1)) * scale); // 11
+    vertices.Add(adjustForUnitSphere(new Vector3(-1, -t,  0)) * scale); // 2
+    vertices.Add(adjustForUnitSphere(new Vector3(-t,  0,  1)) * scale); // 10
+
+    vertices.Add(adjustForUnitSphere(new Vector3(-t,  0,  1)) * scale); // 10
+    vertices.Add(adjustForUnitSphere(new Vector3( 0, -1,  t)) * scale); // 6
+    vertices.Add(adjustForUnitSphere(new Vector3( 0,  1,  t)) * scale); // 7
+
+    vertices.Add(adjustForUnitSphere(new Vector3( 0,  1,  t)) * scale); // 7
+    vertices.Add(adjustForUnitSphere(new Vector3( t,  0,  1)) * scale); // 8
+    vertices.Add(adjustForUnitSphere(new Vector3( 1,  t,  0)) * scale); // 1
+
+    // five face around point 3 (polar opposite of point 0)
+    vertices.Add(adjustForUnitSphere(new Vector3( 1, -t,  0)) * scale); // 3
+    vertices.Add(adjustForUnitSphere(new Vector3( 0, -1, -t)) * scale); // 4
+    vertices.Add(adjustForUnitSphere(new Vector3( t,  0, -1)) * scale); // 9
+
+    vertices.Add(adjustForUnitSphere(new Vector3( 1, -t,  0)) * scale); // 3
+    vertices.Add(adjustForUnitSphere(new Vector3(-1, -t,  0)) * scale); // 2
+    vertices.Add(adjustForUnitSphere(new Vector3( 0, -1, -t)) * scale); // 4
+
+    vertices.Add(adjustForUnitSphere(new Vector3( 1, -t,  0)) * scale); // 3
+    vertices.Add(adjustForUnitSphere(new Vector3( 0, -1,  t)) * scale); // 6
+    vertices.Add(adjustForUnitSphere(new Vector3(-1, -t,  0)) * scale); // 2
+
+    vertices.Add(adjustForUnitSphere(new Vector3( 1, -t,  0)) * scale); // 3
+    vertices.Add(adjustForUnitSphere(new Vector3( t,  0,  1)) * scale); // 8
+    vertices.Add(adjustForUnitSphere(new Vector3( 0, -1,  t)) * scale); // 6
+
+    vertices.Add(adjustForUnitSphere(new Vector3( 1, -t,  0)) * scale); // 3
+    vertices.Add(adjustForUnitSphere(new Vector3( t,  0, -1)) * scale); // 9
+    vertices.Add(adjustForUnitSphere(new Vector3( t,  0,  1)) * scale); // 8
+
+    // five adjacent faces
+    vertices.Add(adjustForUnitSphere(new Vector3( 0, -1, -t)) * scale); // 4
+    vertices.Add(adjustForUnitSphere(new Vector3( 0,  1, -t)) * scale); // 5
+    vertices.Add(adjustForUnitSphere(new Vector3( t,  0, -1)) * scale); // 9
+
+    vertices.Add(adjustForUnitSphere(new Vector3(-1, -t,  0)) * scale); // 2
+    vertices.Add(adjustForUnitSphere(new Vector3(-t,  0, -1)) * scale); // 11
+    vertices.Add(adjustForUnitSphere(new Vector3( 0, -1, -t)) * scale); // 4
+
+    vertices.Add(adjustForUnitSphere(new Vector3( 0, -1,  t)) * scale); // 6
+    vertices.Add(adjustForUnitSphere(new Vector3(-t,  0,  1)) * scale); // 10
+    vertices.Add(adjustForUnitSphere(new Vector3(-1, -t,  0)) * scale); // 2
+
+    vertices.Add(adjustForUnitSphere(new Vector3( t,  0,  1)) * scale); // 8
+    vertices.Add(adjustForUnitSphere(new Vector3( 0,  1,  t)) * scale); // 7
+    vertices.Add(adjustForUnitSphere(new Vector3( 0, -1,  t)) * scale); // 6
+
+    vertices.Add(adjustForUnitSphere(new Vector3( t,  0, -1)) * scale); // 9
+    vertices.Add(adjustForUnitSphere(new Vector3( 1,  t,  0)) * scale); // 1
+    vertices.Add(adjustForUnitSphere(new Vector3( t,  0,  1)) * scale); // 8
   }
 
   private Vector3 adjustForUnitSphere(Vector3 point) {
@@ -137,6 +232,19 @@ public class Icosahedron : MonoBehaviour {
     mesh.triangles = triangles.ToArray();
   }
 
+  private void CreateFlatTriangles() {
+
+    for (int i = 0; i < vertices.Count; i += 3) {
+      AddTriangle(i, i + 1, i + 2);
+    }
+
+    List<int> trianglesSubdivisions = new List<int>();
+
+    mesh.vertices = vertices.ToArray();
+    mesh.triangles = triangles.ToArray();
+    mesh.RecalculateNormals();
+  }
+
   // creates a single triangle face
   private void AddTriangle(int v1, int v2, int v3) {
 
@@ -207,7 +315,12 @@ public class Icosahedron : MonoBehaviour {
     if(vertices != null) {
       Gizmos.color = Color.black;
       for (int i = 0; i < vertices.Count; i++) {
-        Gizmos.DrawSphere(vertices[i], 0.1f);
+        if(i < 12) {
+          Gizmos.color = Color.blue;
+        } else {
+          Gizmos.color = Color.black;
+        }
+        Gizmos.DrawSphere(vertices[i], 1f);
       }
     }
   }
