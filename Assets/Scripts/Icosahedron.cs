@@ -234,46 +234,65 @@ public class Icosahedron : MonoBehaviour {
 
   private void CreateFlatTriangles() {
 
+    // the 20 faces of the non-subdivided icosahedron
     for (int i = 0; i < vertices.Count; i += 3) {
       AddTriangle(i, i + 1, i + 2);
     }
+    // save the current vertices.Count value for later
+    int start = vertices.Count;
 
     List<int> trianglesSubdivisions = new List<int>();
 
-    // refine triangles
     for(int i = 0; i < subdivisions; i++) {
       for(int j = 0; j < triangles.Count; j += 3) {
-        // find midpoints for each triangle
-        int mp1 = GetFlatMidpoint(triangles[j], triangles[j + 1]);
-        int mp2 = GetFlatMidpoint(triangles[j + 1], triangles[j + 2]);
-        int mp3 = GetFlatMidpoint(triangles[j], triangles[j + 2]);
+        Vector3 p0 = vertices[j];
+        Vector3 p1 = vertices[j + 1];
+        Vector3 p2 = vertices[j + 2];
+        Vector3 mp01 = new Vector3((p0.x + p1.x) / 2f,
+                                   (p0.y + p1.y) / 2f,
+                                   (p0.z + p1.z) / 2f);
+        Vector3 mp12 = new Vector3((p1.x + p2.x) / 2f,
+                                   (p1.y + p2.y) / 2f,
+                                   (p1.z + p2.z) / 2f);
+        Vector3 mp02 = new Vector3((p0.x + p2.x) / 2f,
+                                   (p0.y + p2.y) / 2f,
+                                   (p0.z + p2.z) / 2f);
+        // first subdivided face
+        vertices.Add(adjustForUnitSphere(p0)   * scale);
+        vertices.Add(adjustForUnitSphere(mp01) * scale);
+        vertices.Add(adjustForUnitSphere(mp02) * scale);
 
-        // first subdivision
-        trianglesSubdivisions.Add(triangles[j]);
-        trianglesSubdivisions.Add(mp1);
-        trianglesSubdivisions.Add(mp3);
-        
-        // second subdivision
-        trianglesSubdivisions.Add(mp1);
-        trianglesSubdivisions.Add(triangles[j + 1]);
-        trianglesSubdivisions.Add(mp2);
+        // second subdivided face
+        vertices.Add(adjustForUnitSphere(mp01) * scale);
+        vertices.Add(adjustForUnitSphere(mp12) * scale);
+        vertices.Add(adjustForUnitSphere(mp02) * scale);
 
-        // third subdivision
-        trianglesSubdivisions.Add(mp3);
-        trianglesSubdivisions.Add(mp2);
-        trianglesSubdivisions.Add(triangles[j + 2]);
+        // third subdivided face
+        vertices.Add(adjustForUnitSphere(mp01) * scale);
+        vertices.Add(adjustForUnitSphere(p1)   * scale);
+        vertices.Add(adjustForUnitSphere(mp12) * scale);
 
-        // middle subdivision
-        trianglesSubdivisions.Add(mp1);
-        trianglesSubdivisions.Add(mp2);
-        trianglesSubdivisions.Add(mp3);
+        // fourth subdivided face
+        vertices.Add(adjustForUnitSphere(mp02) * scale);
+        vertices.Add(adjustForUnitSphere(mp12) * scale);
+        vertices.Add(adjustForUnitSphere(p2)   * scale);
+
+        int currVerticesCount = vertices.Count;
+
+        for(int k = start; k < currVerticesCount; k += 3) {
+          trianglesSubdivisions.Add(k);
+          trianglesSubdivisions.Add(k + 1);
+          trianglesSubdivisions.Add(k + 2);
+        }
+        // update start
+        start = currVerticesCount;
       }
-
-      // update triangles List
       triangles.AddRange(trianglesSubdivisions);
     }
 
     mesh.vertices = vertices.ToArray();
+    // remove the original 20 faces
+    if(subdivisions != 0) { triangles.RemoveRange(0, 20 * 3); }
     mesh.triangles = triangles.ToArray();
     mesh.RecalculateNormals();
   }
@@ -335,6 +354,8 @@ public class Icosahedron : MonoBehaviour {
     Vector3 mp = new Vector3((p1.x + p2.x) / 2f,
                              (p1.y + p2.y) / 2f,
                              (p1.z + p2.z) / 2f);
+    vertices.Add(adjustForUnitSphere(p1) * scale);
+    vertices.Add(adjustForUnitSphere(p2) * scale);
     vertices.Add(adjustForUnitSphere(mp) * scale);
     return vertices.Count - 1;
   }
@@ -356,6 +377,7 @@ public class Icosahedron : MonoBehaviour {
     }
   }
   
+  /*
   // draw gizmo at each vertex
   private void OnDrawGizmos() {
 
@@ -371,4 +393,5 @@ public class Icosahedron : MonoBehaviour {
       }
     }
   }
+  */
 }
