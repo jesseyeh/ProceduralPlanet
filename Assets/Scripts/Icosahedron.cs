@@ -4,7 +4,8 @@ using System.Collections.Generic;
 
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
 public class Icosahedron : MonoBehaviour {
-  
+
+  #region VARIABLES
   private List<Vector3> vertices;
   private List<int> triangles;
   private Dictionary<long, int> midpointCache;
@@ -16,6 +17,7 @@ public class Icosahedron : MonoBehaviour {
 
   public bool autoUpdate;
   public bool isFlatShaded;
+  #endregion
 
   private void Awake() {
     Generate();
@@ -39,7 +41,28 @@ public class Icosahedron : MonoBehaviour {
       CreateFlatTriangles();
     }
 
-    AddCollider(mesh);
+    // AddCollider(mesh);
+
+    List<Color> colors = new List<Color>();
+    if(subdivisions == 0) {
+      for(int i = 0; i < vertices.Count; i++) {
+        if(i < 3) {
+          colors.Add(Color.green);
+        } else if(i < 6) {
+          colors.Add(Color.red);
+        } else {
+          colors.Add(Color.white);
+        }
+      }
+    }
+    else {
+      for(int i = 0; i < vertices.Count; i++) {
+        colors.Add(Color.white);
+      }
+      //print(colors.Count);
+    }
+
+    mesh.colors = colors.ToArray();
   }
 
   // create the 12 vertices
@@ -238,16 +261,28 @@ public class Icosahedron : MonoBehaviour {
     for (int i = 0; i < vertices.Count; i += 3) {
       AddTriangle(i, i + 1, i + 2);
     }
-    // save the current vertices.Count value for later
-    int start = vertices.Count;
+    
+    // used to help add subdivisions into the trianglesSubdivisions List
+    int start;
 
     List<int> trianglesSubdivisions = new List<int>();
 
+    // copy of the previous iteration's vertices
+    List<Vector3> oldVertices;
+
     for(int i = 0; i < subdivisions; i++) {
-      for(int j = 0; j < triangles.Count; j += 3) {
-        Vector3 p0 = vertices[j];
-        Vector3 p1 = vertices[j + 1];
-        Vector3 p2 = vertices[j + 2];
+      // save a copy of the previous iteration's vertices
+      oldVertices = new List<Vector3>(vertices);
+      // reset variables from the previous iteration
+      vertices.Clear();
+      trianglesSubdivisions.Clear();
+      start = 0;
+
+      for(int j = 0; j < oldVertices.Count; j += 3) {
+        Vector3 p0 = oldVertices[j];
+        Vector3 p1 = oldVertices[j + 1];
+        Vector3 p2 = oldVertices[j + 2];
+
         Vector3 mp01 = new Vector3((p0.x + p1.x) / 2f,
                                    (p0.y + p1.y) / 2f,
                                    (p0.z + p1.z) / 2f);
@@ -279,6 +314,7 @@ public class Icosahedron : MonoBehaviour {
 
         int currVerticesCount = vertices.Count;
 
+        // add subdivisions
         for(int k = start; k < currVerticesCount; k += 3) {
           trianglesSubdivisions.Add(k);
           trianglesSubdivisions.Add(k + 1);
@@ -287,13 +323,17 @@ public class Icosahedron : MonoBehaviour {
         // update start
         start = currVerticesCount;
       }
-      triangles.AddRange(trianglesSubdivisions);
     }
 
+    /* -- set vertices and triangles for the mesh -- */
     mesh.vertices = vertices.ToArray();
-    // remove the original 20 faces
-    if(subdivisions != 0) { triangles.RemoveRange(0, 20 * 3); }
-    mesh.triangles = triangles.ToArray();
+    if(subdivisions == 0) {
+      // use base triangles List when there are no subdivisions
+      mesh.triangles = triangles.ToArray();
+    } else {
+      // otherwise, use trianglesSubdivisions List
+      mesh.triangles = trianglesSubdivisions.ToArray();
+    }
     mesh.RecalculateNormals();
   }
 
@@ -377,19 +417,20 @@ public class Icosahedron : MonoBehaviour {
     }
   }
   
-  /*
   // draw gizmo at each vertex
+  /*
   private void OnDrawGizmos() {
 
     if(vertices != null) {
       Gizmos.color = Color.black;
       for (int i = 0; i < vertices.Count; i++) {
-        if(i < 12) {
-          Gizmos.color = Color.blue;
+        if(i < 1) {
+          Gizmos.color = Color.green;
+          Gizmos.DrawSphere(vertices[i], 0.1f);
         } else {
-          Gizmos.color = Color.black;
+          Gizmos.color = Color.clear;
+          Gizmos.DrawSphere(vertices[i], 0.1f);
         }
-        Gizmos.DrawSphere(vertices[i], 0.1f);
       }
     }
   }
