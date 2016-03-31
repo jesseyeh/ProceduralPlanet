@@ -8,6 +8,7 @@ public class Icosahedron : MonoBehaviour {
   #region VARIABLES
   private List<Vector3> vertices;
   private List<int> triangles;
+  List<Color> colors;
   private Dictionary<long, int> midpointCache;
   private Mesh mesh;
 
@@ -17,6 +18,11 @@ public class Icosahedron : MonoBehaviour {
 
   public bool autoUpdate;
   public bool isFlatShaded;
+  public int seed;
+  public Color landColor;
+  public Color seaColor;
+  
+  public int numOceanTiles = 10;
   #endregion
 
   private void Awake() {
@@ -27,6 +33,7 @@ public class Icosahedron : MonoBehaviour {
     
     vertices = new List<Vector3>();
     triangles = new List<int>();
+    colors = new List<Color>();
     midpointCache = new Dictionary<long, int>();
     mesh = new Mesh();
     mesh.name = "Procedural Icosahedron";
@@ -43,26 +50,8 @@ public class Icosahedron : MonoBehaviour {
 
     // AddCollider(mesh);
 
-    List<Color> colors = new List<Color>();
-    if(subdivisions == 0) {
-      for(int i = 0; i < vertices.Count; i++) {
-        if(i < 3) {
-          colors.Add(Color.green);
-        } else if(i < 6) {
-          colors.Add(Color.red);
-        } else {
-          colors.Add(Color.white);
-        }
-      }
-    }
-    else {
-      for(int i = 0; i < vertices.Count; i++) {
-        colors.Add(Color.white);
-      }
-      //print(colors.Count);
-    }
-
-    mesh.colors = colors.ToArray();
+    ShuffleVertices(seed);
+    SetVertexColors();
   }
 
   // create the 12 vertices
@@ -333,6 +322,8 @@ public class Icosahedron : MonoBehaviour {
     } else {
       // otherwise, use trianglesSubdivisions List
       mesh.triangles = trianglesSubdivisions.ToArray();
+      triangles.Clear();
+      triangles = trianglesSubdivisions;
     }
     mesh.RecalculateNormals();
   }
@@ -415,6 +406,60 @@ public class Icosahedron : MonoBehaviour {
       MeshCollider newMeshc = gameObject.AddComponent(typeof(MeshCollider)) as MeshCollider;
       newMeshc.sharedMesh = mesh;
     }
+  }
+
+  // Fisher-Yates shuffle algorithm
+  private void ShuffleVertices(int seed) {
+
+    System.Random prng = new System.Random(seed);
+
+    // fill colors List with default color
+    for(int j = 0; j < vertices.Count; j++) {
+      colors.Add(landColor);
+    }
+
+    // (vertices.Count - 9) because the last three vertices can be ignored in the loop's
+    // final iteration
+    for(int i = 0; i < vertices.Count / 3 - 9; i += 3) {
+      int randomIndex = prng.Next(i, vertices.Count / 3);
+
+      // process vertices
+      Vector3 tempVertex0 = vertices[randomIndex * 3];
+      Vector3 tempVertex1 = vertices[randomIndex * 3 + 1];
+      Vector3 tempVertex2 = vertices[randomIndex * 3 + 2];
+
+      vertices[randomIndex * 3] = vertices[i];
+      vertices[randomIndex * 3 + 1] = vertices[i + 1];
+      vertices[randomIndex * 3 + 2] = vertices[i + 2];
+
+      vertices[i] = tempVertex0;
+      vertices[i + 1] = tempVertex1;
+      vertices[i + 2] = tempVertex2;
+
+      // process triangles
+      int tempTriangle0 = triangles[randomIndex * 3];
+      int tempTriangle1 = triangles[randomIndex * 3 + 1];
+      int tempTriangle2 = triangles[randomIndex * 3 + 2];
+
+      triangles[randomIndex * 3] = triangles[i];
+      triangles[randomIndex * 3 + 1] = triangles[i + 1];
+      triangles[randomIndex * 3 + 2] = triangles[i + 2];
+
+      triangles[i] = tempTriangle0;
+      triangles[i + 1] = tempTriangle1;
+      triangles[i + 2] = tempTriangle2;
+    }
+  }
+
+  private void SetVertexColors() {
+
+    // set the first (numOceanTIles * 3) vertex colors to seaColor
+    for(int i = 0; i < numOceanTiles * 3; i += 3) {
+      colors[triangles[i]] = seaColor;
+      colors[triangles[i + 1]] = seaColor;
+      colors[triangles[i + 2]] = seaColor;
+    }
+    mesh.colors = colors.ToArray();
   }
   
   // draw gizmo at each vertex
