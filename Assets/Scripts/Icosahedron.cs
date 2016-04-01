@@ -22,7 +22,8 @@ public class Icosahedron : MonoBehaviour {
   public Color landColor;
   public Color seaColor;
   
-  public int numOceanTiles = 10;
+  [Range(0, 1)]
+  public float oceanTilesPercentage;
   #endregion
 
   private void Awake() {
@@ -453,8 +454,8 @@ public class Icosahedron : MonoBehaviour {
 
   private void SetVertexColors() {
 
-    // set the first (numOceanTIles * 3) vertex colors to seaColor
-    for(int i = 0; i < numOceanTiles * 3; i += 3) {
+    // set the first (numOceanTiles * 3) vertex colors to seaColor
+    for(int i = 0; i < vertices.Count * oceanTilesPercentage; i += 3) {
       colors[triangles[i]] = seaColor;
       colors[triangles[i + 1]] = seaColor;
       colors[triangles[i + 2]] = seaColor;
