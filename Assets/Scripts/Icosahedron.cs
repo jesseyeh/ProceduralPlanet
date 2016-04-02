@@ -11,6 +11,7 @@ public class Icosahedron : MonoBehaviour {
   private List<int> triangles;
   private Dictionary<long, int> midpointCache;
   Dictionary<int, Tile> tiles;
+  Dictionary<Vector3, List<Tile>> verticesUsedByTiles;
   Dictionary<int, int[]> neighbors;
   List<Color> colors;
   private Mesh mesh;
@@ -35,10 +36,12 @@ public class Icosahedron : MonoBehaviour {
 
   public void Generate() {
     
+    // initialize variables
     vertices = new List<Vector3>();
     triangles = new List<int>();
     colors = new List<Color>();
     tiles = new Dictionary<int, Tile>();
+    verticesUsedByTiles = new Dictionary<Vector3, List<Tile>>();
     midpointCache = new Dictionary<long, int>();
     mesh = new Mesh();
     mesh.name = "Procedural Icosahedron";
@@ -272,6 +275,29 @@ public class Icosahedron : MonoBehaviour {
     for(int i = 0; i < vertices.Count; i += 3) {
       Tile tile = new Tile(vertices[i], vertices[i + 1], vertices[i + 2],
                            triangles[i], triangles[i + 1], triangles[i + 2]);
+
+      // Dictionary used to map vertices (keys) to the tiles (values) that contain them
+      // first check if the key already exists
+      if(verticesUsedByTiles.ContainsKey(vertices[i])) {
+        verticesUsedByTiles[vertices[i]].Add(tile);
+      } else {
+        verticesUsedByTiles.Add(vertices[i], new List<Tile>());
+        verticesUsedByTiles[vertices[i]].Add(tile);
+      }
+      // do the same for vertices[i + 1] and vertices[i + 2]
+      if(verticesUsedByTiles.ContainsKey(vertices[i + 1])) {
+        verticesUsedByTiles[vertices[i + 1]].Add(tile);
+      } else {
+        verticesUsedByTiles.Add(vertices[i + 1], new List<Tile>());
+        verticesUsedByTiles[vertices[i + 1]].Add(tile);
+      }
+      if(verticesUsedByTiles.ContainsKey(vertices[i + 2])) {
+        verticesUsedByTiles[vertices[i + 2]].Add(tile);
+      } else {
+        verticesUsedByTiles.Add(vertices[i + 2], new List<Tile>());
+        verticesUsedByTiles[vertices[i + 2]].Add(tile);
+      }
+
       tiles.Add(index, tile);
       index++;
     }
@@ -336,6 +362,7 @@ public class Icosahedron : MonoBehaviour {
   private void SetNeighbors() {
 
     // TODO
+
   }
 
   #region SHARED_VERTICES_METHODS
@@ -475,6 +502,25 @@ public class Icosahedron : MonoBehaviour {
   #endregion
 
   #region GIZMOS
+  /* VERTICES
+  private void OnDrawGizmos() {
+
+    if (vertices != null) {
+      Gizmos.color = Color.black;
+      for (int i = 0; i < vertices.Count; i++) {
+        if (i < 1) {
+          Gizmos.color = Color.green;
+        }
+        else {
+          Gizmos.color = Color.clear;
+        }
+        Gizmos.DrawSphere(vertices[i], 0.1f);
+      }
+    }
+  }
+  */
+
+  /* TILES
   // draw gizmo at each vertex
   private void OnDrawGizmos() {
 
@@ -492,6 +538,7 @@ public class Icosahedron : MonoBehaviour {
       }
     }
   }
+  */
   #endregion
 
   private class Tile {
