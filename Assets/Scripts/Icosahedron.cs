@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
 public class Icosahedron : MonoBehaviour {
@@ -8,8 +9,10 @@ public class Icosahedron : MonoBehaviour {
   #region VARIABLES
   private List<Vector3> vertices;
   private List<int> triangles;
-  List<Color> colors;
   private Dictionary<long, int> midpointCache;
+  Dictionary<int, Tile> tiles;
+  Dictionary<int, int[]> neighbors;
+  List<Color> colors;
   private Mesh mesh;
 
   public int scale = 1;
@@ -20,7 +23,7 @@ public class Icosahedron : MonoBehaviour {
   public bool isFlatShaded;
   public int seed;
   public Color landColor;
-  public Color seaColor;
+  public Color oceanColor;
   
   [Range(0, 1)]
   public float oceanTilesPercentage;
@@ -35,6 +38,7 @@ public class Icosahedron : MonoBehaviour {
     vertices = new List<Vector3>();
     triangles = new List<int>();
     colors = new List<Color>();
+    tiles = new Dictionary<int, Tile>();
     midpointCache = new Dictionary<long, int>();
     mesh = new Mesh();
     mesh.name = "Procedural Icosahedron";
@@ -49,31 +53,13 @@ public class Icosahedron : MonoBehaviour {
       CreateFlatTriangles();
     }
 
+    // organize vertices into tiles
+    SetTiles();
+    ShuffleTiles(seed);
+
     // AddCollider(mesh);
-
-    ShuffleVertices(seed);
+    
     SetVertexColors();
-  }
-
-  // create the 12 vertices
-  private void CreateVertices(float t) {
-    
-    vertices.Add(adjustForUnitSphere(new Vector3(-1,  t,  0)) * scale); // 0
-    vertices.Add(adjustForUnitSphere(new Vector3( 1,  t,  0)) * scale); // 1
-    vertices.Add(adjustForUnitSphere(new Vector3(-1, -t,  0)) * scale); // 2
-    vertices.Add(adjustForUnitSphere(new Vector3( 1, -t,  0)) * scale); // 3
-
-    vertices.Add(adjustForUnitSphere(new Vector3( 0, -1, -t)) * scale); // 4
-    vertices.Add(adjustForUnitSphere(new Vector3( 0,  1, -t)) * scale); // 5
-    vertices.Add(adjustForUnitSphere(new Vector3( 0, -1,  t)) * scale); // 6
-    vertices.Add(adjustForUnitSphere(new Vector3( 0,  1,  t)) * scale); // 7
-
-    vertices.Add(adjustForUnitSphere(new Vector3( t,  0,  1)) * scale); // 8
-    vertices.Add(adjustForUnitSphere(new Vector3( t,  0, -1)) * scale); // 9
-    vertices.Add(adjustForUnitSphere(new Vector3(-t,  0,  1)) * scale); // 10
-    vertices.Add(adjustForUnitSphere(new Vector3(-t,  0, -1)) * scale); // 11
-    
-    mesh.vertices = vertices.ToArray();
   }
 
   // create separate vertices for flat shading
@@ -171,80 +157,6 @@ public class Icosahedron : MonoBehaviour {
     return newPoint;
   }
 
-  private void CreateTriangles() {
-
-    // order vertices clockwise so that the face faces the right direction
-
-    // create the 20 faces
-    // five faces around point 0
-    AddTriangle(0, 5, 11);
-    AddTriangle(0, 1, 5);
-    AddTriangle(0, 7, 1);
-    AddTriangle(0, 10, 7);
-    AddTriangle(0, 11, 10);
-
-    // five adjacent faces
-    AddTriangle(1, 9, 5);
-    AddTriangle(5, 4, 11);
-    AddTriangle(11, 2, 10);
-    AddTriangle(10, 6, 7);
-    AddTriangle(7, 8, 1);
-
-    // five face around point 3 (polar opposite of point 0)
-    AddTriangle(3, 4, 9);
-    AddTriangle(3, 2, 4);
-    AddTriangle(3, 6, 2);
-    AddTriangle(3, 8, 6);
-    AddTriangle(3, 9, 8);
-
-    // five adjacent faces
-    AddTriangle(4, 5, 9);
-    AddTriangle(2, 11, 4);
-    AddTriangle(6, 10, 2);
-    AddTriangle(8, 7, 6);
-    AddTriangle(9, 1, 8);
-
-    // subdivisions
-    List<int> trianglesSubdivisions = new List<int>();
-
-    // refine triangles
-    for(int i = 0; i < subdivisions; i++) {
-      for(int j = 0; j < triangles.Count; j += 3) {
-        // find midpoints for each triangle
-        int mp1 = GetMidpoint(triangles[j], triangles[j + 1]);
-        int mp2 = GetMidpoint(triangles[j + 1], triangles[j + 2]);
-        int mp3 = GetMidpoint(triangles[j], triangles[j + 2]);
-
-        // first subdivision
-        trianglesSubdivisions.Add(triangles[j]);
-        trianglesSubdivisions.Add(mp1);
-        trianglesSubdivisions.Add(mp3);
-        
-        // second subdivision
-        trianglesSubdivisions.Add(mp1);
-        trianglesSubdivisions.Add(triangles[j + 1]);
-        trianglesSubdivisions.Add(mp2);
-
-        // third subdivision
-        trianglesSubdivisions.Add(mp3);
-        trianglesSubdivisions.Add(mp2);
-        trianglesSubdivisions.Add(triangles[j + 2]);
-
-        // middle subdivision
-        trianglesSubdivisions.Add(mp1);
-        trianglesSubdivisions.Add(mp2);
-        trianglesSubdivisions.Add(mp3);
-      }
-
-      // update triangles List
-      triangles.AddRange(trianglesSubdivisions);
-    }
-
-    // update mesh
-    mesh.vertices = vertices.ToArray();
-    mesh.triangles = triangles.ToArray();
-  }
-
   private void CreateFlatTriangles() {
 
     // the 20 faces of the non-subdivided icosahedron
@@ -337,6 +249,191 @@ public class Icosahedron : MonoBehaviour {
     triangles.Add(v3);
   }
 
+  // same as GetMidpoint, but does not account for shared vertices
+  private int GetFlatMidpoint(int v1, int v2) {
+    // first point
+    Vector3 p1 = vertices[v1];
+    // second point
+    Vector3 p2 = vertices[v2];
+    // midpoint between first and second points
+    Vector3 mp = new Vector3((p1.x + p2.x) / 2f,
+                             (p1.y + p2.y) / 2f,
+                             (p1.z + p2.z) / 2f);
+    vertices.Add(adjustForUnitSphere(p1) * scale);
+    vertices.Add(adjustForUnitSphere(p2) * scale);
+    vertices.Add(adjustForUnitSphere(mp) * scale);
+    return vertices.Count - 1;
+  }
+
+  private void SetTiles() {
+
+    // set up tiles dictionary
+    int index = 0;
+    for(int i = 0; i < vertices.Count; i += 3) {
+      Tile tile = new Tile(vertices[i], vertices[i + 1], vertices[i + 2],
+                           triangles[i], triangles[i + 1], triangles[i + 2]);
+      tiles.Add(index, tile);
+      index++;
+    }
+  }
+
+  // Fisher-Yates shuffle algorithm
+  private void ShuffleTiles(int seed) {
+
+    System.Random prng = new System.Random(seed);
+    
+    // we can ignore the last iteration of the algorithm
+    for(int i = 0; i < tiles.Count - 1; i++) {
+      int randomIndex = prng.Next(i, tiles.Count);
+
+      // swap
+      Tile tempTile = tiles[randomIndex];
+      tiles[randomIndex] = tiles[i];
+      tiles[i] = tempTile;
+    }
+  }
+
+  private void AddCollider(Mesh mesh) {
+
+    // add a mesh collider to the generated mesh
+    if (this.GetComponent<MeshCollider>() == null) {
+      MeshCollider meshc = gameObject.AddComponent(typeof(MeshCollider)) as MeshCollider;
+      meshc.sharedMesh = mesh;
+    } else {
+      // destroy all existing colliders
+      foreach(MeshCollider meshc in this.GetComponents<MeshCollider>()) {
+        DestroyImmediate(meshc);
+      }
+      // create new mesh collider
+      MeshCollider newMeshc = gameObject.AddComponent(typeof(MeshCollider)) as MeshCollider;
+      newMeshc.sharedMesh = mesh;
+    }
+  }
+
+  private void SetVertexColors() {
+    
+    // initially, set all tiles to be land tiles
+    for(int i = 0; i < vertices.Count; i++) {
+      colors.Add(landColor);
+    }
+    
+    // get the keys from the dictionary
+    // take the first numOceanTiles elements and set those to be ocean tiles
+    int numOceanTiles = (int)(tiles.Count * oceanTilesPercentage);
+    for(int i = 0; i < numOceanTiles; i++) {
+      tiles[i].isOceanTile = true;
+      
+      // the int values for the triangles of each tile can be used to designate the
+      // appropriate indices in the colors List
+      colors[tiles[i].t0] = oceanColor;
+      colors[tiles[i].t1] = oceanColor;
+      colors[tiles[i].t2] = oceanColor;
+    }
+
+    mesh.colors = colors.ToArray();
+  }
+
+  private void SetNeighbors() {
+
+    // TODO
+  }
+
+  #region SHARED_VERTICES_METHODS
+  // create the 12 vertices
+  private void CreateVertices(float t) {
+    
+    vertices.Add(adjustForUnitSphere(new Vector3(-1,  t,  0)) * scale); // 0
+    vertices.Add(adjustForUnitSphere(new Vector3( 1,  t,  0)) * scale); // 1
+    vertices.Add(adjustForUnitSphere(new Vector3(-1, -t,  0)) * scale); // 2
+    vertices.Add(adjustForUnitSphere(new Vector3( 1, -t,  0)) * scale); // 3
+
+    vertices.Add(adjustForUnitSphere(new Vector3( 0, -1, -t)) * scale); // 4
+    vertices.Add(adjustForUnitSphere(new Vector3( 0,  1, -t)) * scale); // 5
+    vertices.Add(adjustForUnitSphere(new Vector3( 0, -1,  t)) * scale); // 6
+    vertices.Add(adjustForUnitSphere(new Vector3( 0,  1,  t)) * scale); // 7
+
+    vertices.Add(adjustForUnitSphere(new Vector3( t,  0,  1)) * scale); // 8
+    vertices.Add(adjustForUnitSphere(new Vector3( t,  0, -1)) * scale); // 9
+    vertices.Add(adjustForUnitSphere(new Vector3(-t,  0,  1)) * scale); // 10
+    vertices.Add(adjustForUnitSphere(new Vector3(-t,  0, -1)) * scale); // 11
+    
+    mesh.vertices = vertices.ToArray();
+  }
+
+  private void CreateTriangles() {
+
+    // order vertices clockwise so that the face faces the right direction
+
+    // create the 20 faces
+    // five faces around point 0
+    AddTriangle(0, 5, 11);
+    AddTriangle(0, 1, 5);
+    AddTriangle(0, 7, 1);
+    AddTriangle(0, 10, 7);
+    AddTriangle(0, 11, 10);
+
+    // five adjacent faces
+    AddTriangle(1, 9, 5);
+    AddTriangle(5, 4, 11);
+    AddTriangle(11, 2, 10);
+    AddTriangle(10, 6, 7);
+    AddTriangle(7, 8, 1);
+
+    // five face around point 3 (polar opposite of point 0)
+    AddTriangle(3, 4, 9);
+    AddTriangle(3, 2, 4);
+    AddTriangle(3, 6, 2);
+    AddTriangle(3, 8, 6);
+    AddTriangle(3, 9, 8);
+
+    // five adjacent faces
+    AddTriangle(4, 5, 9);
+    AddTriangle(2, 11, 4);
+    AddTriangle(6, 10, 2);
+    AddTriangle(8, 7, 6);
+    AddTriangle(9, 1, 8);
+
+    // subdivisions
+    List<int> trianglesSubdivisions = new List<int>();
+
+    // refine triangles
+    for(int i = 0; i < subdivisions; i++) {
+      for(int j = 0; j < triangles.Count; j += 3) {
+        // find midpoints for each triangle
+        int mp1 = GetMidpoint(triangles[j], triangles[j + 1]);
+        int mp2 = GetMidpoint(triangles[j + 1], triangles[j + 2]);
+        int mp3 = GetMidpoint(triangles[j], triangles[j + 2]);
+
+        // first subdivision
+        trianglesSubdivisions.Add(triangles[j]);
+        trianglesSubdivisions.Add(mp1);
+        trianglesSubdivisions.Add(mp3);
+        
+        // second subdivision
+        trianglesSubdivisions.Add(mp1);
+        trianglesSubdivisions.Add(triangles[j + 1]);
+        trianglesSubdivisions.Add(mp2);
+
+        // third subdivision
+        trianglesSubdivisions.Add(mp3);
+        trianglesSubdivisions.Add(mp2);
+        trianglesSubdivisions.Add(triangles[j + 2]);
+
+        // middle subdivision
+        trianglesSubdivisions.Add(mp1);
+        trianglesSubdivisions.Add(mp2);
+        trianglesSubdivisions.Add(mp3);
+      }
+
+      // update triangles List
+      triangles.AddRange(trianglesSubdivisions);
+    }
+
+    // update mesh
+    mesh.vertices = vertices.ToArray();
+    mesh.triangles = triangles.ToArray();
+  }
+
   // gets the midpoint between two points of a triangle's edge
   private int GetMidpoint(int v1, int v2) {
 
@@ -375,110 +472,41 @@ public class Icosahedron : MonoBehaviour {
     midpointCache.Add(key, vertices.Count - 1);
     return vertices.Count - 1;
   }
+  #endregion
 
-  // same as GetMidpoint, but does not account for shared vertices
-  private int GetFlatMidpoint(int v1, int v2) {
-    // first point
-    Vector3 p1 = vertices[v1];
-    // second point
-    Vector3 p2 = vertices[v2];
-    // midpoint between first and second points
-    Vector3 mp = new Vector3((p1.x + p2.x) / 2f,
-                             (p1.y + p2.y) / 2f,
-                             (p1.z + p2.z) / 2f);
-    vertices.Add(adjustForUnitSphere(p1) * scale);
-    vertices.Add(adjustForUnitSphere(p2) * scale);
-    vertices.Add(adjustForUnitSphere(mp) * scale);
-    return vertices.Count - 1;
-  }
-
-  private void AddCollider(Mesh mesh) {
-
-    // add a mesh collider to the generated mesh
-    if (this.GetComponent<MeshCollider>() == null) {
-      MeshCollider meshc = gameObject.AddComponent(typeof(MeshCollider)) as MeshCollider;
-      meshc.sharedMesh = mesh;
-    } else {
-      // destroy all existing colliders
-      foreach(MeshCollider meshc in this.GetComponents<MeshCollider>()) {
-        DestroyImmediate(meshc);
-      }
-      // create new mesh collider
-      MeshCollider newMeshc = gameObject.AddComponent(typeof(MeshCollider)) as MeshCollider;
-      newMeshc.sharedMesh = mesh;
-    }
-  }
-
-  // Fisher-Yates shuffle algorithm
-  private void ShuffleVertices(int seed) {
-
-    System.Random prng = new System.Random(seed);
-
-    // fill colors List with default color
-    for(int j = 0; j < vertices.Count; j++) {
-      colors.Add(landColor);
-    }
-
-    // (vertices.Count - 9) because the last three vertices can be ignored in the loop's
-    // final iteration
-    for(int i = 0; i < vertices.Count / 3 - 9; i += 3) {
-      int randomIndex = prng.Next(i, vertices.Count / 3);
-
-      // process vertices
-      Vector3 tempVertex0 = vertices[randomIndex * 3];
-      Vector3 tempVertex1 = vertices[randomIndex * 3 + 1];
-      Vector3 tempVertex2 = vertices[randomIndex * 3 + 2];
-
-      vertices[randomIndex * 3] = vertices[i];
-      vertices[randomIndex * 3 + 1] = vertices[i + 1];
-      vertices[randomIndex * 3 + 2] = vertices[i + 2];
-
-      vertices[i] = tempVertex0;
-      vertices[i + 1] = tempVertex1;
-      vertices[i + 2] = tempVertex2;
-
-      // process triangles
-      int tempTriangle0 = triangles[randomIndex * 3];
-      int tempTriangle1 = triangles[randomIndex * 3 + 1];
-      int tempTriangle2 = triangles[randomIndex * 3 + 2];
-
-      triangles[randomIndex * 3] = triangles[i];
-      triangles[randomIndex * 3 + 1] = triangles[i + 1];
-      triangles[randomIndex * 3 + 2] = triangles[i + 2];
-
-      triangles[i] = tempTriangle0;
-      triangles[i + 1] = tempTriangle1;
-      triangles[i + 2] = tempTriangle2;
-    }
-  }
-
-  private void SetVertexColors() {
-
-    // set the first (numOceanTiles * 3) vertex colors to seaColor
-    for(int i = 0; i < vertices.Count * oceanTilesPercentage; i += 3) {
-      colors[triangles[i]] = seaColor;
-      colors[triangles[i + 1]] = seaColor;
-      colors[triangles[i + 2]] = seaColor;
-    }
-    mesh.colors = colors.ToArray();
-  }
-  
+  #region GIZMOS
   // draw gizmo at each vertex
-  /*
   private void OnDrawGizmos() {
 
-    if(vertices != null) {
+    if(tiles != null) {
       Gizmos.color = Color.black;
-      for (int i = 0; i < vertices.Count; i++) {
+      for (int i = 0; i < tiles.Count; i++) {
         if(i < 1) {
           Gizmos.color = Color.green;
-          Gizmos.DrawSphere(vertices[i], 0.1f);
         } else {
           Gizmos.color = Color.clear;
-          Gizmos.DrawSphere(vertices[i], 0.1f);
         }
+        Gizmos.DrawSphere(tiles[i].v0, 0.1f);
+        Gizmos.DrawSphere(tiles[i].v1, 0.1f);
+        Gizmos.DrawSphere(tiles[i].v2, 0.1f);
       }
     }
   }
-  */
+  #endregion
+
+  private class Tile {
+    public Vector3 v0, v1, v2;
+    public int t0, t1, t2;
+    // default to false
+    public bool isOceanTile = false;
+
+    public Tile(Vector3 v0, Vector3 v1, Vector3 v2, int t0, int t1, int t2) {
+      this.v0 = v0;
+      this.v1 = v1;
+      this.v2 = v2;
+      this.t0 = t0;
+      this.t1 = t1;
+      this.t2 = t2;
+    }
+  }
 }
