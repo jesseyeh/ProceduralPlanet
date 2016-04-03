@@ -12,7 +12,7 @@ public class Icosahedron : MonoBehaviour {
   private Dictionary<long, int> midpointCache;
   Dictionary<int, Tile> tiles;
   Dictionary<Vector3, List<Tile>> verticesUsedByTiles;
-  Dictionary<int, int[]> neighbors;
+  Dictionary<Tile, List<Tile>> neighbors;
   List<Color> colors;
   private Mesh mesh;
 
@@ -42,6 +42,7 @@ public class Icosahedron : MonoBehaviour {
     colors = new List<Color>();
     tiles = new Dictionary<int, Tile>();
     verticesUsedByTiles = new Dictionary<Vector3, List<Tile>>();
+    neighbors = new Dictionary<Tile, List<Tile>>();
     midpointCache = new Dictionary<long, int>();
     mesh = new Mesh();
     mesh.name = "Procedural Icosahedron";
@@ -59,9 +60,10 @@ public class Icosahedron : MonoBehaviour {
     // organize vertices into tiles
     SetTiles();
     ShuffleTiles(seed);
+    SetNeighbors();
 
     // AddCollider(mesh);
-    
+
     SetVertexColors();
   }
 
@@ -361,8 +363,88 @@ public class Icosahedron : MonoBehaviour {
 
   private void SetNeighbors() {
 
-    // TODO
+    // set the neighbors for each tile
+    for(int i = 0; i < tiles.Count; i++) {
+      // go through the vertices of each tile
+      // check for common vertices between tiles
+      var intersection0 = verticesUsedByTiles[tiles[i].v0].Intersect(verticesUsedByTiles[tiles[i].v1]);
+      var intersection1 = verticesUsedByTiles[tiles[i].v1].Intersect(verticesUsedByTiles[tiles[i].v2]);
+      var intersection2 = verticesUsedByTiles[tiles[i].v0].Intersect(verticesUsedByTiles[tiles[i].v2]);
 
+      // a size of two matching vertices between tiles indicates that they are neighbors
+      // set the neighbor for intersection0
+      if(intersection0.ToArray().Length > 1) {
+        if(neighbors.ContainsKey(intersection0.ToArray()[0])) {
+          if(!neighbors[intersection0.ToArray()[0]].Contains(intersection0.ToArray()[1])) {
+            neighbors[intersection0.ToArray()[0]].Add(intersection0.ToArray()[1]);
+          }
+        } else {
+          neighbors.Add(intersection0.ToArray()[0], new List<Tile>());
+          neighbors[intersection0.ToArray()[0]].Add(intersection0.ToArray()[1]);
+        }
+        // reciprocate the neighbor
+        if(neighbors.ContainsKey(intersection0.ToArray()[1])) {
+          if(!neighbors[intersection0.ToArray()[1]].Contains(intersection0.ToArray()[0])) {
+            neighbors[intersection0.ToArray()[1]].Add(intersection0.ToArray()[0]);
+          }
+        } else {
+          neighbors.Add(intersection0.ToArray()[1], new List<Tile>());
+          neighbors[intersection0.ToArray()[1]].Add(intersection0.ToArray()[0]);
+        }
+      }
+
+      // set the neighbor for intersection1
+      if(intersection1.ToArray().Length > 1) {
+        if(neighbors.ContainsKey(intersection1.ToArray()[0])) {
+          // check if the value is already in the List at that key
+          if(!neighbors[intersection1.ToArray()[0]].Contains(intersection1.ToArray()[1])) {
+            neighbors[intersection1.ToArray()[0]].Add(intersection1.ToArray()[1]);
+          }
+        } else {
+          neighbors.Add(intersection1.ToArray()[0], new List<Tile>());
+          neighbors[intersection1.ToArray()[0]].Add(intersection1.ToArray()[1]);
+        }
+        // reciprocate the neighbor
+        if(neighbors.ContainsKey(intersection1.ToArray()[1])) {
+          if(!neighbors[intersection1.ToArray()[1]].Contains(intersection1.ToArray()[0])) {
+            neighbors[intersection1.ToArray()[1]].Add(intersection1.ToArray()[0]);
+          }
+        } else {
+          neighbors.Add(intersection1.ToArray()[1], new List<Tile>());
+          neighbors[intersection1.ToArray()[1]].Add(intersection1.ToArray()[0]);
+        }
+      }
+
+      // set the neighbor for intersection2
+      if(intersection2.ToArray().Length > 1) {
+        if(neighbors.ContainsKey(intersection2.ToArray()[0])) {
+          if(!neighbors[intersection2.ToArray()[0]].Contains(intersection2.ToArray()[1])) {
+            neighbors[intersection2.ToArray()[0]].Add(intersection2.ToArray()[1]);
+          }
+        } else {
+          neighbors.Add(intersection2.ToArray()[0], new List<Tile>());
+          neighbors[intersection2.ToArray()[0]].Add(intersection2.ToArray()[1]);
+        }
+        // reciprocate the neighbor
+        if(neighbors.ContainsKey(intersection2.ToArray()[1])) {
+          if(!neighbors[intersection2.ToArray()[1]].Contains(intersection2.ToArray()[0])) {
+            neighbors[intersection2.ToArray()[1]].Add(intersection2.ToArray()[0]);
+          }
+        } else {
+          neighbors.Add(intersection2.ToArray()[1], new List<Tile>());
+          neighbors[intersection2.ToArray()[1]].Add(intersection2.ToArray()[0]);
+        }
+      }
+    }
+  }
+
+  // checks if the first tile is a neighbor to the second tile
+  private bool CheckIfNeighbors(Tile tile0, Tile tile1) {
+    
+    if(neighbors[tile0].Contains(tile1)) {
+      return true;
+    }
+    return false;
   }
 
   #region SHARED_VERTICES_METHODS
@@ -502,7 +584,8 @@ public class Icosahedron : MonoBehaviour {
   #endregion
 
   #region GIZMOS
-  /* VERTICES
+  /*
+  // VERTICES
   private void OnDrawGizmos() {
 
     if (vertices != null) {
@@ -510,8 +593,7 @@ public class Icosahedron : MonoBehaviour {
       for (int i = 0; i < vertices.Count; i++) {
         if (i < 1) {
           Gizmos.color = Color.green;
-        }
-        else {
+        } else {
           Gizmos.color = Color.clear;
         }
         Gizmos.DrawSphere(vertices[i], 0.1f);
@@ -519,15 +601,16 @@ public class Icosahedron : MonoBehaviour {
     }
   }
   */
-
-  /* TILES
+  
+  /*
+  // TILES
   // draw gizmo at each vertex
   private void OnDrawGizmos() {
 
     if(tiles != null) {
       Gizmos.color = Color.black;
       for (int i = 0; i < tiles.Count; i++) {
-        if(i < 1) {
+        if (i < 1) {
           Gizmos.color = Color.green;
         } else {
           Gizmos.color = Color.clear;
@@ -541,11 +624,12 @@ public class Icosahedron : MonoBehaviour {
   */
   #endregion
 
-  private class Tile {
+  public class Tile {
     public Vector3 v0, v1, v2;
     public int t0, t1, t2;
     // default to false
     public bool isOceanTile = false;
+    Icosahedron ico;
 
     public Tile(Vector3 v0, Vector3 v1, Vector3 v2, int t0, int t1, int t2) {
       this.v0 = v0;
