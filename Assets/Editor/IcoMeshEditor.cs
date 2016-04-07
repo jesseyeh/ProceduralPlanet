@@ -2,21 +2,21 @@
 using System.Collections;
 using UnityEditor;
 
-[CustomEditor(typeof(Icosahedron))]
-public class MapGeneratorEditor : Editor {
+[CustomEditor(typeof(IcoMesh))]
+public class IcoMeshEditor : Editor {
 
   public override void OnInspectorGUI() {
 
-    Icosahedron ico = (Icosahedron)target;
+    IcoMesh im = (IcoMesh)target;
 
     if (DrawDefaultInspector()) {
-      if (ico.autoUpdate) {
-        ico.Generate();
+      if (im.autoUpdate) {
+        im.Generate();
       }
     }
 
     if (GUILayout.Button("Generate")) {
-      ico.Generate();
+      im.Generate();
     }
   }
 }
