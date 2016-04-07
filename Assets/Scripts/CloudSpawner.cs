@@ -8,6 +8,9 @@ public class CloudSpawner : MonoBehaviour {
 
   public List<Vector3> spawnPoints;
   public int distanceScalar;
+  [Range(0, 1)]
+  public float cloudsPercentage;
+  public Transform cloudPrefab;
 
   private List<int> triangles;
   private Dictionary<long, int> midpointCache;
@@ -25,6 +28,11 @@ public class CloudSpawner : MonoBehaviour {
 
     AddSpawnPoints();
     CreateTriangles();
+
+    Utility.Shuffle(icoMesh.seed, spawnPoints);
+    for(int i = 0; i < (int)(spawnPoints.Count * cloudsPercentage); i++) {
+      // Instantiate(cloudPrefab, spawnPoints[i], Quaternion.identity);
+    }
   }
 
   // similar to AddVertices() from IcoMesh, but uses a shared vertices approach instead

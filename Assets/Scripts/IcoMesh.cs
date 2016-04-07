@@ -14,6 +14,8 @@ public class IcoMesh : MonoBehaviour {
   public int seed;
   [Range(0, 1)]
   public float oceanTilesPercentage;
+  [Range(0, 1)]
+  public float treesPercentage;
   public Color oceanColor;
   public Color desertColor;
   public Color plainsColor;
@@ -22,6 +24,9 @@ public class IcoMesh : MonoBehaviour {
   public Color snowColor;
   [Range(1, 10)]
   public int bumpiness;
+
+  [Header("Props")]
+  public List<Transform> trees;
 
   [Header("Misc")]
   public IcoTile tilePrefab;
@@ -61,7 +66,8 @@ public class IcoMesh : MonoBehaviour {
     tiles = Utility.Shuffle(seed, tiles);
     AddNeighbors();
     AddElevations();
-    // AddColors();
+    AddColors();
+    SpawnTrees();
 
     AddCollider(mesh);
   }
@@ -335,24 +341,24 @@ public class IcoMesh : MonoBehaviour {
 
   private void AddColors() {
 
-    int numOceanTiles = (int)(tiles.Count * oceanTilesPercentage);
-    for(int i = 0; i < numOceanTiles; i++) {
-      tiles[i].color = oceanColor;
-
-      for(int j = 0; j < 3; j++) {
-        colors.Add(tiles[i].color);
-      }
-    }
-
-    for(int i = numOceanTiles; i < tiles.Count; i++) {
+    for(int i = 0; i < tiles.Count; i++) {
       tiles[i].color = plainsColor;
-
       for(int j = 0; j < 3; j++) {
         colors.Add(tiles[i].color);
       }
     }
 
     mesh.colors = colors.ToArray();
+  }
+
+  private void SpawnTrees() {
+
+    int numTrees = (int)(tiles.Count * treesPercentage);
+    for(int i = 0; i < numTrees; i++) {
+      Vector3 gravityUp = (tiles[i].v0 - this.transform.position).normalized;
+      Transform tree = Instantiate(trees[0], tiles[i].v0, Quaternion.FromToRotation(trees[0].transform.up, gravityUp)) as Transform;
+      tree.localScale *= scale;
+    }
   }
 
   private void AddCollider(Mesh mesh) {
