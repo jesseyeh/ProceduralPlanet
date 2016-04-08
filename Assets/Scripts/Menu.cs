@@ -5,17 +5,19 @@ using UnityEngine.UI;
 
 public class Menu : MonoBehaviour {
 
+  [Header("Holders")]
   public GameObject mainMenuHolder;
   public GameObject creditsHolder;
   public GameObject newGameMenu;
-  public Image transition;
 
+  [Header("UI")]
+  public Image transition;
   public Camera menuCamera;
+
+  [Header("References")]
   public Transform player;
   public Transform animalCompanion;
   public IcoMesh icoMesh;
-
-  public Slider subdivisionsSlider;
 
   public void MainMenu() {
 
@@ -36,7 +38,7 @@ public class Menu : MonoBehaviour {
     newGameMenu.SetActive(false);
     Cursor.visible = false;
     Instantiate(animalCompanion, player.position + Vector3.forward * 2, Quaternion.identity);
-    AudioManager.instance.PlayMusic(AudioManager.instance.nightTheme);
+    AudioManager.instance.ChangeMusic(AudioManager.instance.nightTheme);
   }
 
   public void Credits() {

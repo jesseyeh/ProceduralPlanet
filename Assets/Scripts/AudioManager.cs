@@ -24,47 +24,31 @@ public class AudioManager : MonoBehaviour {
     crossfadeSource = newCrossfadeSource.AddComponent<AudioSource>();
     newCrossfadeSource.transform.parent = this.transform;    
 
-    PlayMusic(menuTheme, 5);
+    PlayMusic(menuTheme);
   }
 
-  public void PlayMusic(AudioClip musicClip, float fadeDuration = 1) {
+  public void PlayMusic(AudioClip musicClip, float fadeDuration = 2) {
     
     musicSource.clip = musicClip;
     musicSource.Play();
-
-    StartCoroutine(FadeOutAndInto(fadeDuration, musicClip));
   }
 
-  private IEnumerator Crossfade(float duration) {
+  public void ChangeMusic(AudioClip musicClip, float fadeDuration = 2) {
 
-    float percent = 0;
+    crossfadeSource.clip = musicClip;
+    crossfadeSource.Play();
 
-    while(percent < 1) {
-      percent += Time.deltaTime * 1 / duration;
-      musicSource.volume = Mathf.Lerp(0, 1, percent);
-
-      yield return null;
-    }
+    StartCoroutine(FadeOutAndInto(fadeDuration));
   }
 
-  private IEnumerator FadeOutAndInto(float duration, AudioClip newClip) {
+  private IEnumerator FadeOutAndInto(float duration) {
 
     float percent = 0;
-
     // fade out musicSource
     while(percent < 1) {
       percent += Time.deltaTime * 1 / duration;
       musicSource.volume = Mathf.Lerp(1, 0, percent);
-
-      yield return null;
-    }
-
-    percent = 0;
-    musicSource.clip = newClip;
-    // fade in new clip
-    while(percent < 1) {
-      percent += Time.deltaTime * 1 / duration;
-      musicSource.volume = Mathf.Lerp(0, 1, percent);
+      crossfadeSource.volume = Mathf.Lerp(0, 1, percent);
 
       yield return null;
     }
