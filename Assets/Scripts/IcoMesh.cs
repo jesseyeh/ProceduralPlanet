@@ -6,11 +6,13 @@ using System.Linq;
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
 public class IcoMesh : MonoBehaviour {
 
+  public static IcoMesh instance;
+
   #region VARIABLES
   [Header("Appearance")]
   public int scale = 1;
   [Range(0, 3)]
-  public int subdivisions = 0;
+  public int subdivisions = 2;
   public int seed;
   [Range(0, 1)]
   public float oceanTilesPercentage;
@@ -22,8 +24,8 @@ public class IcoMesh : MonoBehaviour {
   public Color forestColor;
   public Color mountainsColor;
   public Color snowColor;
-  [Range(1, 10)]
-  public int bumpiness;
+  [Range(1, 30)]
+  public int smoothness = 12;
   public int planetaryRotationSpeed = 1;
 
   [Header("Props")]
@@ -33,6 +35,7 @@ public class IcoMesh : MonoBehaviour {
   public IcoTile tilePrefab;
   public bool autoUpdate;
   public CloudSpawner cloudSpawner;
+  public GameObject treesHolder;
 
   private Mesh mesh;
   private List<Vector3> vertices;
@@ -48,6 +51,8 @@ public class IcoMesh : MonoBehaviour {
   }
 
   public void Generate() {
+
+    instance = this;
 
     // initialize variables
     vertices = new List<Vector3>();
@@ -329,7 +334,7 @@ public class IcoMesh : MonoBehaviour {
 
     float elevation;
     foreach(Vector3 vertex in tilesByVertices.Keys) {
-      elevation = (1 + (prng.Next(0, bumpiness)) / 100f);
+      elevation = (1 + (prng.Next(0, smoothness)) / 100f);
       for(int i = 0; i < vertices.Count; i++) {
         if(vertex == vertices[i]) {
           vertices[i] *= elevation;
@@ -354,14 +359,36 @@ public class IcoMesh : MonoBehaviour {
 
   private void SpawnTrees() {
 
+    // prevent duplicate instantiations of trees
+    foreach(Transform treeChild in treesHolder.transform) {
+      Destroy(treeChild.gameObject);
+    }
+
     int numTrees = (int)(tiles.Count * treesPercentage);
     System.Random prng = new System.Random();
+    Vector3 gravityUp;
+    Transform tree;
+    
     for(int i = 0; i < numTrees; i++) {
       int randomTreeIndex = prng.Next(0, trees.Count);
-      Vector3 gravityUp = (tiles[i].v0 - this.transform.position).normalized;
-      Transform tree = Instantiate(trees[randomTreeIndex], tiles[i].v0, Quaternion.FromToRotation(trees[0].transform.up, gravityUp)) as Transform;
+      int random = prng.Next(0, 2);
+      switch(random) {
+        case 1:
+          gravityUp = (tiles[i].v1 - this.transform.position).normalized;
+          tree = Instantiate(trees[randomTreeIndex], tiles[i].v1, Quaternion.FromToRotation(trees[0].transform.up, gravityUp)) as Transform;
+          break;
+        case 2:
+          gravityUp = (tiles[i].v2 - this.transform.position).normalized;
+          tree = Instantiate(trees[randomTreeIndex], tiles[i].v2, Quaternion.FromToRotation(trees[0].transform.up, gravityUp)) as Transform;
+          break;
+        default:
+          gravityUp = (tiles[i].v0 - this.transform.position).normalized;
+          tree = Instantiate(trees[randomTreeIndex], tiles[i].v0, Quaternion.FromToRotation(trees[0].transform.up, gravityUp)) as Transform;
+          break;
+      }
+
       tree.localScale *= scale;
-      tree.SetParent(this.transform, false);
+      tree.SetParent(treesHolder.transform, false);
     }
   }
 
