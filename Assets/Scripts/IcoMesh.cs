@@ -24,6 +24,7 @@ public class IcoMesh : MonoBehaviour {
   public Color snowColor;
   [Range(1, 10)]
   public int bumpiness;
+  public int planetaryRotationSpeed = 1;
 
   [Header("Props")]
   public List<Transform> trees;
@@ -354,10 +355,13 @@ public class IcoMesh : MonoBehaviour {
   private void SpawnTrees() {
 
     int numTrees = (int)(tiles.Count * treesPercentage);
+    System.Random prng = new System.Random();
     for(int i = 0; i < numTrees; i++) {
+      int randomTreeIndex = prng.Next(0, trees.Count);
       Vector3 gravityUp = (tiles[i].v0 - this.transform.position).normalized;
-      Transform tree = Instantiate(trees[0], tiles[i].v0, Quaternion.FromToRotation(trees[0].transform.up, gravityUp)) as Transform;
+      Transform tree = Instantiate(trees[randomTreeIndex], tiles[i].v0, Quaternion.FromToRotation(trees[0].transform.up, gravityUp)) as Transform;
       tree.localScale *= scale;
+      tree.SetParent(this.transform, false);
     }
   }
 
@@ -376,6 +380,11 @@ public class IcoMesh : MonoBehaviour {
       MeshCollider newMeshc = gameObject.AddComponent(typeof(MeshCollider)) as MeshCollider;
       newMeshc.sharedMesh = mesh;
     }
+  }
+
+  private void Update() {
+
+    this.transform.RotateAround(Vector3.zero, Vector3.up, planetaryRotationSpeed * Time.deltaTime);
   }
 
   #region GIZMOS
