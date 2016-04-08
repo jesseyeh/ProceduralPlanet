@@ -39,6 +39,9 @@ public class Menu : MonoBehaviour {
     Cursor.visible = false;
     Instantiate(animalCompanion, player.position + Vector3.forward * 2, Quaternion.identity);
     AudioManager.instance.ChangeMusic(AudioManager.instance.nightTheme);
+
+    // stop the planet from rotating
+    IcoMesh.instance.planetaryRotationSpeed = 0;
   }
 
   public void Credits() {
