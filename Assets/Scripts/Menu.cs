@@ -12,6 +12,7 @@ public class Menu : MonoBehaviour {
 
   public Camera menuCamera;
   public Transform player;
+  public Transform animalCompanion;
   public IcoMesh icoMesh;
 
   public Slider subdivisionsSlider;
@@ -34,6 +35,8 @@ public class Menu : MonoBehaviour {
     StartCoroutine(Transition(Color.clear, Color.white, 3));
     newGameMenu.SetActive(false);
     Cursor.visible = false;
+    Instantiate(animalCompanion, player.position + Vector3.forward * 2, Quaternion.identity);
+    AudioManager.instance.PlayMusic(AudioManager.instance.nightTheme);
   }
 
   public void Credits() {

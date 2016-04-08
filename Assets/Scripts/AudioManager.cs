@@ -32,13 +32,36 @@ public class AudioManager : MonoBehaviour {
     musicSource.clip = musicClip;
     musicSource.Play();
 
-    StartCoroutine(Crossfade(fadeDuration));
+    StartCoroutine(FadeOutAndInto(fadeDuration, musicClip));
   }
 
   private IEnumerator Crossfade(float duration) {
 
     float percent = 0;
 
+    while(percent < 1) {
+      percent += Time.deltaTime * 1 / duration;
+      musicSource.volume = Mathf.Lerp(0, 1, percent);
+
+      yield return null;
+    }
+  }
+
+  private IEnumerator FadeOutAndInto(float duration, AudioClip newClip) {
+
+    float percent = 0;
+
+    // fade out musicSource
+    while(percent < 1) {
+      percent += Time.deltaTime * 1 / duration;
+      musicSource.volume = Mathf.Lerp(1, 0, percent);
+
+      yield return null;
+    }
+
+    percent = 0;
+    musicSource.clip = newClip;
+    // fade in new clip
     while(percent < 1) {
       percent += Time.deltaTime * 1 / duration;
       musicSource.volume = Mathf.Lerp(0, 1, percent);
