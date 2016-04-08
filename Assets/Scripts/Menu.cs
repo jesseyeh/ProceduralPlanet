@@ -22,6 +22,7 @@ public class Menu : MonoBehaviour {
 
     mainMenuHolder.SetActive(false);
     StartCoroutine(Transition(Color.clear, Color.white, 3));
+    Cursor.visible = false;
   }
 
   public void Credits() {
