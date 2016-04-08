@@ -37,6 +37,7 @@ public class Menu : MonoBehaviour {
     StartCoroutine(Transition(Color.clear, Color.white, 3));
     newGameMenu.SetActive(false);
     Cursor.visible = false;
+    Cursor.lockState = CursorLockMode.Confined;
     Instantiate(animalCompanion, player.position + Vector3.forward * 2, Quaternion.identity);
     AudioManager.instance.ChangeMusic(AudioManager.instance.nightTheme);
 
@@ -80,9 +81,10 @@ public class Menu : MonoBehaviour {
     }
   }
 
-  public void SetSubdivisions(float value) {
+  public void SetDetail(float value) {
 
     IcoMesh.instance.subdivisions = (int)value;
+    print(IcoMesh.instance.scale);
   }
 
   public void SetSmoothness(float value) {

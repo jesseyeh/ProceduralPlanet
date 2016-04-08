@@ -10,7 +10,7 @@ public class IcoMesh : MonoBehaviour {
 
   #region VARIABLES
   [Header("Appearance")]
-  public int scale = 1;
+  public float scale = 1;
   [Range(0, 3)]
   public int subdivisions = 2;
   public int seed;
@@ -365,6 +365,7 @@ public class IcoMesh : MonoBehaviour {
     }
 
     int numTrees = (int)(tiles.Count * treesPercentage);
+    if(subdivisions > 2) numTrees /= 2;
     System.Random prng = new System.Random();
     Vector3 gravityUp;
     Transform tree;
